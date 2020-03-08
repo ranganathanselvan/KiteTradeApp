@@ -8,6 +8,7 @@ using System.Windows.Forms;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.WebSockets;
 
 namespace WindowsTradeApp
 {
@@ -26,6 +27,7 @@ namespace WindowsTradeApp
             label1.Text = tradeUser.kiteUser.UserName;
             label2.Text = tradeUser.kiteUser.UserId;
             label3.Text = tradeUser.kiteUser.Email;
+            WebSocket();
         }
 
         public void GetInstruments()
@@ -48,55 +50,34 @@ namespace WindowsTradeApp
             //Log.WriteLog("trade-log.txt", stringBuilder.ToString());
         }
 
-        public async void getHistoricalData(string insToken, string interval)
-        {
-            try
-            {
-
-                //List<Historical> listHistorical = tradeUser.kite.GetHistoricalData(insToken, DateTime.Today.AddDays(-14), DateTime.Today, interval);
-
-                client.BaseAddress = new Uri("https://api.kite.trade/instruments/historical/52543/day?from=2020-03-01+09:30:00&to=2020-03-07+10:30:00");
-                client.DefaultRequestHeaders.Accept.Clear();
-                client.DefaultRequestHeaders.Accept.Add(
-                    new MediaTypeWithQualityHeaderValue("application/json"));
-                client.DefaultRequestHeaders.Add("X-Kite-Version", "3");
-                client.DefaultRequestHeaders.Add("Authorization", "token " + tradeUser.ApiKey + ":" + tradeUser.AccessToken);
-
-                var response = await client.GetAsync("");
-                //return listHistorical;
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-        }
-
-        private void loadChart()
+        public void WebSocket()
         {
             try
             {
                 ticker = new Ticker(tradeUser.ApiKey, tradeUser.AccessToken);
                 // Add handlers to events
-                ticker.OnTick += onTick;
+                ticker.OnTick += onTicker;
 
                 // Engage reconnection mechanism and connect to ticker
                 ticker.EnableReconnect(Interval: 5, Retries: 50);
                 ticker.Connect();
 
                 // Subscribing to NIFTY50 and setting mode to LTP
-                ticker.Subscribe(Tokens: new UInt32[] { 256265 });
-                ticker.SetMode(Tokens: new UInt32[] { 256265 }, Mode: Constants.MODE_LTP);
+                ticker.Subscribe(Tokens: new UInt32[] { 2113328 });
+                ticker.SetMode(Tokens: new UInt32[] { 2113328 }, Mode: Constants.MODE_LTP);
 
+                //var ws = new WebSocket('');  //("wss://ws.kite.trade?api_key=xxx&access_token=xxxx");
             }
             catch (Exception ex)
             {
 
                 throw ex;
             }
+
         }
 
         // Example onTick handler
-        private static void onTick(Tick TickData)
+        private static void onTicker(Tick TickData)
         {
 
             StringBuilder stringBuilder = new StringBuilder();
@@ -111,10 +92,10 @@ namespace WindowsTradeApp
             Console.WriteLine("LTP: " + TickData.LastPrice);
         }
 
-
         private void btnLogout_Click(object sender, EventArgs e)
         {
-            //ticker.Close();
+            if (ticker != null)
+                ticker.Close();
             TradeUser.DestroyInstance();
             Form1 form = new Form1();
             form.Show();
@@ -182,7 +163,6 @@ namespace WindowsTradeApp
             try
             {
                 var selectedToken = comboBox2.SelectedItem.ToString();
-                getHistoricalData("", "");
                 /*var exetoken = listInsEntity.Where(w => w.Name == comboBox1.SelectedItem.ToString() && w.InstrumentToken == Convert.ToUInt32(selectedToken))
                     .Select(s => s.ExchangeToken).ToList();
                 var list = getHistoricalData(exetoken[0].ToString(), "day");
